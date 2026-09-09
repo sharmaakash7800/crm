@@ -908,7 +908,10 @@ body {
   }
 }
 
-/* Mobile App Bottom Navigation Bar (Android/iOS Style) */
+.mobile-sidebar-toggle {
+  display: none;
+}
+
 .mobile-bottom-nav {
   display: none;
 }
@@ -927,21 +930,114 @@ body {
   }
 
   .mobile-bottom-nav {
+  /* Hamburger toggle button (visible only on mobile) */
+  .mobile-sidebar-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+
+  /* Slide-out Sidebar Drawer */
+  .mobile-sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    display: flex;
+    animation: fadeIn 0.2s ease;
+  }
+
+  .mobile-sidebar-panel {
+    width: 82%;
+    max-width: 320px;
+    background: #0F172A;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 4px 0 25px rgba(0, 0, 0, 0.7);
+    border-right: 1px solid var(--border-subtle);
+  }
+
+  .mobile-sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.15rem 1rem;
+    border-bottom: 1px solid var(--border-subtle);
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .mobile-sidebar-body {
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    overflow-y: auto;
+  }
+
+  .sidebar-section-title {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.35rem;
+    padding-left: 0.35rem;
+  }
+
+  .sidebar-nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: var(--radius-md);
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .sidebar-nav-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+  }
+
+  .sidebar-nav-btn.active {
+    background: var(--primary);
+    color: white;
+  }
+
+  /* Compact Bottom Navigation Bar (No oversized icon) */
+  .mobile-bottom-nav {
     display: flex;
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
-    height: 64px;
-    background: rgba(15, 23, 42, 0.95);
+    height: 56px;
+    background: rgba(15, 23, 42, 0.96);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
     align-items: center;
     justify-content: space-around;
     z-index: 999;
-    padding: 0 0.5rem;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+    padding: 0 0.25rem;
   }
 
   .mobile-nav-item {
@@ -949,57 +1045,68 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 3px;
+    gap: 2px;
     background: none;
     border: none;
     color: #94A3B8;
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     font-weight: 600;
     cursor: pointer;
     flex: 1;
     height: 100%;
-    transition: all 0.2s ease;
+  }
+
+  .mobile-nav-item svg {
+    width: 17px;
+    height: 17px;
   }
 
   .mobile-nav-item.active {
     color: #3B82F6;
   }
 
-  .mobile-nav-item.active svg {
-    transform: scale(1.1);
-    filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6));
-  }
-
-  .mobile-nav-badge {
-    position: absolute;
-    top: -2px;
-    right: -4px;
-    width: 8px;
-    height: 8px;
-    background: #EF4444;
-    border-radius: 50%;
-  }
-
-  /* Center Floating Action Button (FAB) */
+  /* Compact Balanced FAB */
   .mobile-fab {
-    width: 52px;
-    height: 52px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #3B82F6, #8B5CF6);
+    background: linear-gradient(135deg, #3B82F6, #2563EB);
     color: white;
-    border: 3px solid #0B0F19;
+    border: none;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-top: -24px;
-    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.5);
+    margin: 0 4px;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
     cursor: pointer;
-    transition: transform 0.15s ease;
+    flex-shrink: 0;
   }
 
-  .mobile-fab:active {
-    transform: scale(0.92);
+  .mobile-fab svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  /* LEAD DETAILS MODAL / DRAWER RESPONSIVENESS FIX */
+  .modal-overlay {
+    padding: 0.5rem;
+    align-items: flex-end; /* Sheet style on mobile */
+  }
+
+  .modal-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0 !important;
+    max-height: 88vh !important;
+    margin: 0 !important;
+  }
+
+  .modal-body {
+    grid-template-columns: 1fr !important; /* Stack 2 columns into 1 clean column */
+    gap: 1rem !important;
+    padding: 1rem !important;
   }
 }
+
 
 

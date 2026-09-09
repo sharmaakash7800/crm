@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, Kanban, Calendar, BarChart3, Settings,
   Plus, Search, Filter, Download, Upload, Phone, Mail, MessageSquare,
   Sparkles, CheckCircle2, ChevronDown, MoreVertical, Trash2, Edit3,
-  ExternalLink, Layers, ArrowUpDown
+  ExternalLink, Layers, ArrowUpDown, Menu, X
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { api } from './api';
@@ -20,6 +20,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('leads'); // 'leads', 'kanban', 'followups', 'analytics', 'settings'
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   // Filters & Search
   const [search, setSearch] = useState('');
@@ -128,14 +129,25 @@ export default function App() {
     <div className="app-container">
       {/* Top Navigation Bar */}
       <header className="navbar">
-        <div className="brand">
-          <div className="brand-icon">
-            <Layers size={22} />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+          <div className="brand">
+            <div className="brand-icon">
+              <Layers size={20} />
+            </div>
+            <div>
+              <div className="brand-title">Autopilot Business Coach</div>
+              <div className="brand-subtitle">Smart CRM & Growth System</div>
+            </div>
           </div>
-          <div>
-            <div className="brand-title">Autopilot Business Coach</div>
-            <div className="brand-subtitle">Smart CRM & Growth System</div>
-          </div>
+
+          {/* Mobile Sidebar Hamburger Toggle */}
+          <button
+            className="mobile-sidebar-toggle"
+            onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+            aria-label="Open Menu"
+          >
+            {isMobileSidebarOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
         </div>
 
         {/* View Switcher Tabs */}
@@ -569,6 +581,102 @@ export default function App() {
           <span>Settings</span>
         </button>
       </nav>
+
+      {/* Slide-out Mobile Sidebar Drawer */}
+      {isMobileSidebarOpen && (
+        <div className="mobile-sidebar-overlay" onClick={() => setIsMobileSidebarOpen(false)}>
+          <div className="mobile-sidebar-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="mobile-sidebar-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <div className="brand-icon" style={{ width: '32px', height: '32px' }}>
+                  <Layers size={18} />
+                </div>
+                <div>
+                  <div style={{ fontWeight: '700', fontSize: '0.95rem', color: '#FFFFFF' }}>Autopilot Coach</div>
+                  <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Menu & Actions</div>
+                </div>
+              </div>
+              <button className="btn-icon" onClick={() => setIsMobileSidebarOpen(false)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="mobile-sidebar-body">
+              <div className="sidebar-section-title">Navigation Views</div>
+              <button
+                onClick={() => { setActiveTab('leads'); setIsMobileSidebarOpen(false); }}
+                className={`sidebar-nav-btn ${activeTab === 'leads' ? 'active' : ''}`}
+              >
+                <Users size={16} />
+                <span>Leads Database</span>
+                <span className="badge-count" style={{ marginLeft: 'auto' }}>{leads.length}</span>
+              </button>
+
+              <button
+                onClick={() => { setActiveTab('kanban'); setIsMobileSidebarOpen(false); }}
+                className={`sidebar-nav-btn ${activeTab === 'kanban' ? 'active' : ''}`}
+              >
+                <Kanban size={16} />
+                <span>Kanban Pipeline</span>
+              </button>
+
+              <button
+                onClick={() => { setActiveTab('followups'); setIsMobileSidebarOpen(false); }}
+                className={`sidebar-nav-btn ${activeTab === 'followups' ? 'active' : ''}`}
+              >
+                <Calendar size={16} />
+                <span>Follow-ups & Reminders</span>
+                {(overdueCount > 0 || todayFollowupCount > 0) && (
+                  <span className="badge-count" style={{ marginLeft: 'auto', background: '#EF4444' }}>
+                    {overdueCount + todayFollowupCount}
+                  </span>
+                )}
+              </button>
+
+              <button
+                onClick={() => { setActiveTab('analytics'); setIsMobileSidebarOpen(false); }}
+                className={`sidebar-nav-btn ${activeTab === 'analytics' ? 'active' : ''}`}
+              >
+                <BarChart3 size={16} />
+                <span>Analytics & Reports</span>
+              </button>
+
+              <button
+                onClick={() => { setActiveTab('settings'); setIsMobileSidebarOpen(false); }}
+                className={`sidebar-nav-btn ${activeTab === 'settings' ? 'active' : ''}`}
+              >
+                <Settings size={16} />
+                <span>Settings & Google Sync</span>
+              </button>
+
+              <div className="sidebar-section-title" style={{ marginTop: '1.25rem' }}>Actions & Tools</div>
+
+              <button
+                onClick={() => {
+                  setEditingLead(null);
+                  setIsLeadModalOpen(true);
+                  setIsMobileSidebarOpen(false);
+                }}
+                className="btn btn-primary"
+                style={{ width: '100%', justifyContent: 'flex-start', padding: '0.65rem 0.85rem' }}
+              >
+                <Plus size={16} /> + Add New Lead
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsImportExportOpen(true);
+                  setIsMobileSidebarOpen(false);
+                }}
+                className="btn btn-secondary"
+                style={{ width: '100%', justifyContent: 'flex-start', padding: '0.65rem 0.85rem', marginTop: '0.5rem' }}
+              >
+                <Upload size={16} /> Sheet Import / Export
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
