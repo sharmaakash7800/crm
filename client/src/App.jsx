@@ -133,8 +133,8 @@ export default function App() {
             <Layers size={22} />
           </div>
           <div>
-            <div className="brand-title">Nexus SheetLess CRM</div>
-            <div className="brand-subtitle">100% Private • Google Sheet Free</div>
+            <div className="brand-title">Autopilot Business Coach</div>
+            <div className="brand-subtitle">Smart CRM & Growth System</div>
           </div>
         </div>
 

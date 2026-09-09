@@ -149,6 +149,12 @@ body {
   border-radius: var(--radius-lg);
   padding: 4px;
   gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.nav-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .nav-tab-btn {
@@ -785,11 +791,132 @@ body {
   .navbar {
     flex-direction: column;
     align-items: stretch;
+    padding: 0.75rem 1rem;
+    gap: 0.75rem;
   }
+
+  .nav-tabs {
+    width: 100%;
+    justify-content: flex-start;
+    padding: 4px;
+    gap: 4px;
+  }
+
+  .nav-tab-btn {
+    white-space: nowrap;
+    padding: 0.45rem 0.75rem;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+  }
+
+  .nav-actions {
+    display: flex;
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .nav-actions .btn {
+    flex: 1;
+    font-size: 0.8rem;
+    padding: 0.5rem 0.75rem;
+    justify-content: center;
+  }
+
+  .main-content {
+    padding: 1rem 0.75rem;
+  }
+
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.65rem;
+    margin-bottom: 1rem;
+  }
+
+  .metric-card {
+    padding: 0.85rem;
+    gap: 0.65rem;
+  }
+
+  .metric-icon-box {
+    width: 38px;
+    height: 38px;
+  }
+
+  .metric-value {
+    font-size: 1.15rem;
+  }
+
+  .metric-label {
+    font-size: 0.72rem;
+  }
+
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0.75rem;
+    gap: 0.65rem;
+  }
+
+  .search-box {
+    min-width: 100%;
+  }
+
+  .filter-group {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .filter-group .select-input {
+    width: 100%;
+    font-size: 0.75rem;
+    padding: 0.45rem 0.5rem;
+  }
+
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: var(--radius-md);
+  }
+
+  .crm-table th, .crm-table td {
+    padding: 0.75rem 0.65rem;
+    font-size: 0.82rem;
+  }
+
   .form-grid {
     grid-template-columns: 1fr;
   }
+
   .form-group.col-span-2 {
     grid-column: span 1;
   }
+
+  /* Drawer on Mobile */
+  .drawer-panel {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Modal on Mobile */
+  .modal-card {
+    width: 95% !important;
+    max-width: 95% !important;
+    padding: 1rem !important;
+    max-height: 90vh;
+  }
 }
+
+@media (max-width: 480px) {
+  .brand-title {
+    font-size: 1rem;
+  }
+  .brand-subtitle {
+    font-size: 0.65rem;
+  }
+  .metrics-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
