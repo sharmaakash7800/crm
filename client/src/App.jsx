@@ -517,6 +517,58 @@ export default function App() {
         onClose={() => setIsImportExportOpen(false)}
         onImportSuccess={fetchLeads}
       />
+
+      {/* Native App Style Mobile Bottom Navigation Bar */}
+      <nav className="mobile-bottom-nav">
+        <button
+          onClick={() => setActiveTab('leads')}
+          className={`mobile-nav-item ${activeTab === 'leads' ? 'active' : ''}`}
+        >
+          <Users size={20} />
+          <span>Leads</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('kanban')}
+          className={`mobile-nav-item ${activeTab === 'kanban' ? 'active' : ''}`}
+        >
+          <Kanban size={20} />
+          <span>Pipeline</span>
+        </button>
+
+        {/* Floating Add Lead Button */}
+        <button
+          onClick={() => {
+            setEditingLead(null);
+            setIsLeadModalOpen(true);
+          }}
+          className="mobile-fab"
+          title="Add Lead"
+        >
+          <Plus size={24} />
+        </button>
+
+        <button
+          onClick={() => setActiveTab('followups')}
+          className={`mobile-nav-item ${activeTab === 'followups' ? 'active' : ''}`}
+        >
+          <div style={{ position: 'relative' }}>
+            <Calendar size={20} />
+            {(overdueCount > 0 || todayFollowupCount > 0) && (
+              <span className="mobile-nav-badge" />
+            )}
+          </div>
+          <span>Follow-up</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('settings')}
+          className={`mobile-nav-item ${activeTab === 'settings' ? 'active' : ''}`}
+        >
+          <Settings size={20} />
+          <span>Settings</span>
+        </button>
+      </nav>
     </div>
   );
 }
