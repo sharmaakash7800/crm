@@ -2,16 +2,27 @@
 node_modules/
 client/node_modules/
 
+# Local Windows launcher scripts (not needed on cloud)
+*.bat
+
 # Bundled binaries
 node.exe
 
-# Production Build
+# Production Build output
 client/dist/
 
-# SQLite Database (Live data)
-data/crm.sqlite
+# SQLite Database (Local data)
+data/
+*.sqlite
+*.sqlite3
 
-# Logs & temp
+# Linters, boilerplate assets & docs
+.oxlintrc.json
+client/.oxlintrc.json
+client/src/assets/react.svg
+client/src/assets/vite.svg
+
+# Logs & OS temporary files
 *.log
 .DS_Store
 Thumbs.db
