@@ -18,6 +18,12 @@ export default function SettingsView() {
     const loadSettings = async () => {
       try {
         setLoading(true);
+        // First fallback to local storage
+        const cachedUrl = localStorage.getItem('crm_google_sheet_url');
+        if (cachedUrl) {
+          setGoogleSheetUrl(cachedUrl);
+        }
+
         const res = await api.getSettings();
         if (res.success) {
           if (res.settings.whatsapp_templates) {
@@ -25,6 +31,7 @@ export default function SettingsView() {
           }
           if (res.settings.google_sheet_url) {
             setGoogleSheetUrl(res.settings.google_sheet_url);
+            localStorage.setItem('crm_google_sheet_url', res.settings.google_sheet_url);
           }
         }
       } catch (err) {
@@ -70,7 +77,9 @@ export default function SettingsView() {
 
   const handleSaveGoogleSheet = async () => {
     try {
-      await api.saveSetting('google_sheet_url', googleSheetUrl.trim());
+      const trimmed = googleSheetUrl.trim();
+      localStorage.setItem('crm_google_sheet_url', trimmed);
+      await api.saveSetting('google_sheet_url', trimmed);
       setSheetSavedSuccess(true);
       setTimeout(() => setSheetSavedSuccess(false), 3000);
     } catch (err) {
