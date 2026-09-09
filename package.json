@@ -7,7 +7,8 @@
     "server": "node server/index.js",
     "client": "npm --prefix client run dev",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "build": "npm --prefix client run build"
+    "build": "npm --prefix client install && npm --prefix client run build",
+    "render-build": "npm install --build-from-source sqlite3 && npm --prefix client install && npm --prefix client run build"
   },
   "keywords": ["crm", "lead-management", "sheet-replacement", "pipeline", "followup"],
   "author": "",
