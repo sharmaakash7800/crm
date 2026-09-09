@@ -786,6 +786,16 @@ body {
   to { opacity: 1; transform: scale(1); }
 }
 
+.mobile-sidebar-toggle {
+  display: none;
+}
+.mobile-bottom-nav {
+  display: none;
+}
+.mobile-sidebar-overlay {
+  display: none;
+}
+
 /* Responsive */
 @media (max-width: 900px) {
   .navbar {
@@ -893,7 +903,7 @@ body {
     grid-column: span 1;
   }
 
-  /* Drawer on Mobile */
+  /* Mobile Drawer */
   .drawer-panel {
     width: 100% !important;
     max-width: 100% !important;
@@ -906,27 +916,17 @@ body {
     padding: 1rem !important;
     max-height: 90vh;
   }
-}
 
-.mobile-sidebar-toggle {
-  display: none;
-}
-
-.mobile-bottom-nav {
-  display: none;
-}
-
-@media (max-width: 768px) {
-  /* Hide desktop top tabs & add button on mobile (now in bottom bar) */
+  /* Hide Desktop Nav and Actions on Mobile */
   .navbar .nav-tabs {
-    display: none;
+    display: none !important;
   }
-  .navbar .nav-actions .btn-primary {
-    display: none;
+  .navbar .nav-actions {
+    display: none !important;
   }
 
   body {
-    padding-bottom: 75px; /* space for bottom nav */
+    padding-bottom: 65px; /* space for bottom nav */
   }
 
   /* Hamburger toggle button (visible only on mobile) */
