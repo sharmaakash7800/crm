@@ -929,7 +929,6 @@ body {
     padding-bottom: 75px; /* space for bottom nav */
   }
 
-  .mobile-bottom-nav {
   /* Hamburger toggle button (visible only on mobile) */
   .mobile-sidebar-toggle {
     display: flex;
