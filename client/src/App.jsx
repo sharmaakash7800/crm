@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, Kanban, Calendar, BarChart3, Settings,
   Plus, Search, Filter, Download, Upload, Phone, Mail, MessageSquare,
   Sparkles, CheckCircle2, ChevronDown, MoreVertical, Trash2, Edit3,
-  ExternalLink, Layers, ArrowUpDown, Menu, X
+  ExternalLink, Layers, ArrowUpDown, Menu, X, Sun, Moon
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { api } from './api';
@@ -21,6 +21,18 @@ export default function App() {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('crm_theme') || 'dark';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('crm_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
 
   // Filters & Search
   const [search, setSearch] = useState('');
@@ -164,9 +176,49 @@ export default function App() {
 
         {/* Dedicated Mobile Header: Zero Logo, Clean, Left-Aligned, 16px Padding */}
         <div className="mobile-header-block mobile-only">
-          <div className="mobile-brand-info">
-            <h1 className="mobile-brand-title">Autopilot Business Coach</h1>
-            <div className="mobile-brand-subtitle">SMART CRM & GROWTH SYSTEM</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+            <div className="mobile-brand-info" style={{ flex: 1 }}>
+              <h1 className="mobile-brand-title">Autopilot Business Coach</h1>
+              <div className="mobile-brand-subtitle">SMART CRM & GROWTH SYSTEM</div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                onClick={toggleTheme}
+                className="btn-icon theme-toggle-btn"
+                title={theme === 'dark' ? 'Switch to Day Mode' : 'Switch to Night Mode'}
+                style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  cursor: 'pointer'
+                }}
+              >
+                {theme === 'dark' ? <Sun size={18} color="#F59E0B" /> : <Moon size={18} color="#3B82F6" />}
+              </button>
+              <button
+                onClick={() => setIsMobileSidebarOpen(true)}
+                className="btn-icon mobile-menu-toggle-btn"
+                title="Open Navigation Menu"
+                style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  cursor: 'pointer'
+                }}
+              >
+                <Menu size={20} />
+              </button>
+            </div>
           </div>
           <button
             onClick={() => setIsImportExportOpen(true)}
@@ -237,6 +289,15 @@ export default function App() {
 
         {/* Desktop Quick Action Buttons */}
         <div className="nav-actions desktop-only">
+          <button
+            onClick={toggleTheme}
+            className="btn btn-secondary theme-toggle-btn"
+            title={theme === 'dark' ? 'Switch to Day Mode' : 'Switch to Night Mode'}
+          >
+            {theme === 'dark' ? <Sun size={16} color="#F59E0B" /> : <Moon size={16} color="#3B82F6" />}
+            <span>{theme === 'dark' ? 'Day Mode' : 'Night Mode'}</span>
+          </button>
+
           <button
             onClick={() => setIsImportExportOpen(true)}
             className="btn btn-secondary"
