@@ -220,13 +220,6 @@ export default function App() {
               </button>
             </div>
           </div>
-          <button
-            onClick={() => setIsImportExportOpen(true)}
-            className="btn btn-secondary mobile-header-import-btn"
-          >
-            <Upload size={15} />
-            <span>⇧ Sheet Import / Export</span>
-          </button>
         </div>
 
         {/* Desktop View Switcher Tabs */}
@@ -296,15 +289,6 @@ export default function App() {
           >
             {theme === 'dark' ? <Sun size={16} color="#F59E0B" /> : <Moon size={16} color="#3B82F6" />}
             <span>{theme === 'dark' ? 'Day Mode' : 'Night Mode'}</span>
-          </button>
-
-          <button
-            onClick={() => setIsImportExportOpen(true)}
-            className="btn btn-secondary"
-            title="Import or Export Sheet Data"
-          >
-            <Upload size={16} />
-            <span>Sheet Import/Export</span>
           </button>
 
           <button
