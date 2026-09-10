@@ -22,6 +22,10 @@ client/.oxlintrc.json
 client/src/assets/react.svg
 client/src/assets/vite.svg
 
+# Environment variables
+.env
+.env.local
+
 # Logs & OS temporary files
 *.log
 .DS_Store

@@ -55,83 +55,88 @@ export default function FollowupsView({ onSelectLead }) {
   };
 
   const renderFollowupCard = (item, type) => (
-    <div key={item.id} className={`followup-card ${type}`}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
-        <button
-          onClick={() => handleToggleComplete(item.id)}
-          style={{
-            background: item.is_completed ? '#10B981' : 'rgba(255,255,255,0.05)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: '50%',
-            width: '28px',
-            height: '28px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            color: item.is_completed ? '#FFFFFF' : 'var(--text-muted)'
-          }}
-          title={item.is_completed ? 'Mark pending' : 'Mark completed'}
-        >
-          <Check size={16} />
-        </button>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <span
-              onClick={() => onSelectLead(item.lead_id)}
-              style={{ fontWeight: '700', color: '#FFFFFF', cursor: 'pointer', textDecoration: 'underline' }}
-            >
-              {item.lead_name}
-            </span>
-            {item.lead_company && (
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                ({item.lead_company})
-              </span>
-            )}
-            <span className={`badge badge-status-${(item.lead_status || 'New').replace(/\s+/g, '')}`} style={{ fontSize: '0.65rem' }}>
-              {item.lead_status}
-            </span>
-          </div>
-
-          <div style={{ fontSize: '0.825rem', color: 'var(--text-secondary)' }}>
-            💬 {item.note || 'Scheduled call follow-up'}
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-            <span>📅 {item.due_date}</span>
-            <span>⏰ {item.due_time}</span>
-            {item.lead_phone && <span>📞 {item.lead_phone}</span>}
-          </div>
+    <div key={item.id} className={`followup-card mobile-followup-card ${type}`}>
+      {/* Top Header: Lead Name + Status */}
+      <div className="followup-card-top-row">
+        <div className="followup-lead-info">
+          <span
+            onClick={() => onSelectLead(item.lead_id)}
+            className="followup-lead-name"
+          >
+            {item.lead_name}
+          </span>
+          {item.lead_company && (
+            <div className="followup-lead-company">
+              🏢 {item.lead_company}
+            </div>
+          )}
         </div>
+
+        <span className={`badge badge-status-${(item.lead_status || 'New').replace(/\s+/g, '')}`}>
+          {item.lead_status}
+        </span>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        {item.lead_phone && (
+      {/* Note / Follow-up detail */}
+      <div className="followup-card-note">
+        {item.note || 'Scheduled follow-up with client'}
+      </div>
+
+      {/* Due Date & Time Banner */}
+      <div className="followup-card-meta">
+        <div className="followup-time-chip">
+          <Calendar size={13} />
+          <span>{item.due_date}</span>
+          <span className="dot-sep">·</span>
+          <Clock size={13} />
+          <span>{item.due_time}</span>
+        </div>
+
+        {item.is_completed && (
+          <span className="followup-done-badge">
+            <Check size={12} /> Done
+          </span>
+        )}
+      </div>
+
+      {/* Action Buttons: 2-column layout for WhatsApp/Call + Open button */}
+      <div className="followup-card-actions">
+        {item.lead_phone ? (
+          <>
+            <button
+              onClick={() => openWhatsApp(item.lead_phone, item.lead_name)}
+              className="btn btn-whatsapp followup-action-btn"
+            >
+              <MessageSquare size={14} />
+              <span>WhatsApp</span>
+            </button>
+
+            <a
+              href={`tel:${item.lead_phone}`}
+              className="btn btn-secondary followup-action-btn"
+              style={{ textDecoration: 'none' }}
+            >
+              <Phone size={14} />
+              <span>Call</span>
+            </a>
+          </>
+        ) : (
           <button
-            onClick={() => openWhatsApp(item.lead_phone, item.lead_name)}
-            className="btn btn-whatsapp btn-sm"
-            title="Chat on WhatsApp"
+            onClick={() => handleToggleComplete(item.id)}
+            className="btn btn-secondary followup-action-btn"
           >
-            <MessageSquare size={14} /> WhatsApp
+            <Check size={14} />
+            <span>{item.is_completed ? 'Mark Pending' : 'Mark Done'}</span>
           </button>
         )}
-        {item.lead_phone && (
-          <a
-            href={`tel:${item.lead_phone}`}
-            className="btn btn-secondary btn-sm"
-            title="Call"
-            style={{ textDecoration: 'none' }}
-          >
-            <Phone size={14} /> Call
-          </a>
-        )}
+
         <button
           onClick={() => onSelectLead(item.lead_id)}
-          className="btn btn-secondary btn-sm"
+          className="btn btn-secondary followup-open-btn"
           title="Open Lead Profile"
         >
-          <ArrowUpRight size={14} />
+          <ArrowUpRight size={15} />
+          <span>Open</span>
         </button>
       </div>
     </div>

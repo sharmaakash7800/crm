@@ -111,17 +111,17 @@ export default function SettingsView() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '1000px', margin: '0 auto' }}>
-      {/* Privacy & Zero-Dependency Badge */}
+      {/* Privacy & Cloud Database Badge */}
       <div style={{ background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: 'var(--radius-lg)', padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
         <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(16, 185, 129, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10B981', flexShrink: 0 }}>
           <ShieldCheck size={24} />
         </div>
         <div>
           <div style={{ fontWeight: '700', color: '#FFFFFF', fontSize: '1rem' }}>
-            100% Independent Local SQLite Database Active
+            MongoDB Atlas Cloud Database Active & Connected
           </div>
           <div style={{ fontSize: '0.825rem', color: 'var(--text-secondary)' }}>
-            आपका पूरा लीड डेटाबेस सुरक्षित लोकल SQLite फाइल (<code style={{ color: '#93C5FD' }}>/data/crm.sqlite</code>) में स्टोर हो रहा है। Google Sheets के डाउन होने, API लिमिट्स या डेटा लीक का कोई जोखिम नहीं है।
+            आपका पूरा लीड डेटाबेस सुरक्षित <code style={{ color: '#93C5FD' }}>MongoDB Atlas (Cluster0)</code> में स्टोर और लाइव फेच हो रहा है। इसके साथ ही Google Sheets ऑटो-सिंक भी रियल-टाइम काम कर रहा है।
           </div>
         </div>
       </div>

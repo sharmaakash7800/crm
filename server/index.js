@@ -1,7 +1,8 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { run, get, all, initDb } = require('./db');
+const { connectDB, Lead, Activity, Followup, Setting } = require('./models');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -10,16 +11,15 @@ app.use(cors());
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 
-// Helper: Sync lead event to configured Google Sheet Webhook URL
+// Helper: Real-time Google Sheet Webhook Sync
 const syncToGoogleSheet = async (action, leadData) => {
   try {
-    const row = await get(`SELECT value FROM settings WHERE key = 'google_sheet_url'`);
-    if (!row || !row.value) return;
-    let webhookUrl = '';
-    try {
-      webhookUrl = JSON.parse(row.value);
-    } catch (e) {
-      webhookUrl = row.value;
+    const settingDoc = await Setting.findOne({ key: 'google_sheet_url' });
+    if (!settingDoc || !settingDoc.value) return;
+
+    let webhookUrl = settingDoc.value;
+    if (typeof webhookUrl === 'object' && webhookUrl.url) {
+      webhookUrl = webhookUrl.url;
     }
     if (!webhookUrl || typeof webhookUrl !== 'string' || !webhookUrl.startsWith('http')) return;
 
@@ -29,7 +29,7 @@ const syncToGoogleSheet = async (action, leadData) => {
       body: JSON.stringify({
         action,
         timestamp: new Date().toISOString(),
-        id: leadData.id,
+        id: leadData.id || leadData._id,
         name: leadData.name,
         phone: leadData.phone || '',
         email: leadData.email || '',
@@ -55,7 +55,7 @@ const syncToGoogleSheet = async (action, leadData) => {
 
 // Health Check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', time: new Date().toISOString() });
+  res.json({ status: 'ok', database: 'mongodb', time: new Date().toISOString() });
 });
 
 // POST /api/test-google-sheet - Test webhook connection
@@ -68,7 +68,7 @@ app.post('/api/test-google-sheet', async (req, res) => {
     const testData = {
       action: 'test',
       timestamp: new Date().toISOString(),
-      id: 999999,
+      id: 'TEST-LEAD-999',
       name: 'Test Lead (Connection Check)',
       phone: '9876543210',
       email: 'test@example.com',
@@ -80,12 +80,12 @@ app.post('/api/test-google-sheet', async (req, res) => {
       deal_value: 50000,
       assigned_to: 'Admin',
       tags: 'Test',
-      notes: 'Testing Google Sheet connection from CRM',
+      notes: 'Testing Google Sheet connection from MongoDB CRM',
       next_followup_date: new Date().toISOString().split('T')[0],
       created_at: new Date().toISOString()
     };
 
-    const response = await fetch(url, {
+    await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(testData)
@@ -97,7 +97,7 @@ app.post('/api/test-google-sheet', async (req, res) => {
   }
 });
 
-// GET /api/leads - search, filter, paginate, sort
+// GET /api/leads - Search, Filter, Sort, Paginate from MongoDB
 app.get('/api/leads', async (req, res) => {
   try {
     const {
@@ -107,50 +107,34 @@ app.get('/api/leads', async (req, res) => {
       priority = 'all',
       assigned_to = 'all',
       sortBy = 'created_at',
-      sortOrder = 'DESC',
-      page = 1,
-      limit = 500
+      sortOrder = 'DESC'
     } = req.query;
 
-    let conditions = [];
-    let params = [];
+    const query = {};
 
-    if (search.trim()) {
-      conditions.push('(name LIKE ? OR phone LIKE ? OR email LIKE ? OR company LIKE ? OR city LIKE ? OR tags LIKE ?)');
-      const term = `%${search.trim()}%`;
-      params.push(term, term, term, term, term, term);
+    if (search && search.trim()) {
+      const term = search.trim();
+      query.$or = [
+        { name: { $regex: term, $options: 'i' } },
+        { phone: { $regex: term, $options: 'i' } },
+        { email: { $regex: term, $options: 'i' } },
+        { company: { $regex: term, $options: 'i' } },
+        { city: { $regex: term, $options: 'i' } },
+        { tags: { $regex: term, $options: 'i' } }
+      ];
     }
 
-    if (status && status !== 'all') {
-      conditions.push('status = ?');
-      params.push(status);
-    }
+    if (status && status !== 'all') query.status = status;
+    if (source && source !== 'all') query.source = source;
+    if (priority && priority !== 'all') query.priority = priority;
+    if (assigned_to && assigned_to !== 'all') query.assigned_to = assigned_to;
 
-    if (source && source !== 'all') {
-      conditions.push('source = ?');
-      params.push(source);
-    }
+    const sortDirection = sortOrder.toUpperCase() === 'ASC' ? 1 : -1;
+    const sortObj = {};
+    sortObj[sortBy === 'id' ? '_id' : sortBy] = sortDirection;
 
-    if (priority && priority !== 'all') {
-      conditions.push('priority = ?');
-      params.push(priority);
-    }
-
-    if (assigned_to && assigned_to !== 'all') {
-      conditions.push('assigned_to = ?');
-      params.push(assigned_to);
-    }
-
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-    const safeSortBy = ['id', 'name', 'company', 'deal_value', 'created_at', 'updated_at', 'next_followup_date'].includes(sortBy)
-      ? sortBy
-      : 'created_at';
-    const safeSortOrder = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
-
-    const leads = await all(
-      `SELECT * FROM leads ${whereClause} ORDER BY ${safeSortBy} ${safeSortOrder}`,
-      params
-    );
+    const leadsDocs = await Lead.find(query).sort(sortObj).lean();
+    const leads = leadsDocs.map(l => ({ ...l, id: l._id.toString() }));
 
     res.json({
       success: true,
@@ -166,20 +150,18 @@ app.get('/api/leads', async (req, res) => {
 // GET /api/leads/:id - Single lead details with activities & followups
 app.get('/api/leads/:id', async (req, res) => {
   try {
-    const lead = await get(`SELECT * FROM leads WHERE id = ?`, [req.params.id]);
-    if (!lead) {
+    const leadDoc = await Lead.findById(req.params.id).lean();
+    if (!leadDoc) {
       return res.status(404).json({ success: false, error: 'Lead not found' });
     }
 
-    const activities = await all(
-      `SELECT * FROM activities WHERE lead_id = ? ORDER BY created_at DESC`,
-      [req.params.id]
-    );
+    const lead = { ...leadDoc, id: leadDoc._id.toString() };
 
-    const followups = await all(
-      `SELECT * FROM followups WHERE lead_id = ? ORDER BY due_date ASC, due_time ASC`,
-      [req.params.id]
-    );
+    const activitiesDocs = await Activity.find({ lead_id: req.params.id }).sort({ created_at: -1 }).lean();
+    const activities = activitiesDocs.map(a => ({ ...a, id: a._id.toString() }));
+
+    const followupsDocs = await Followup.find({ lead_id: req.params.id }).sort({ due_date: 1, due_time: 1 }).lean();
+    const followups = followupsDocs.map(f => ({ ...f, id: f._id.toString() }));
 
     res.json({
       success: true,
@@ -193,7 +175,7 @@ app.get('/api/leads/:id', async (req, res) => {
   }
 });
 
-// POST /api/leads - Create new lead
+// POST /api/leads - Create new lead in MongoDB & sync to Google Sheet
 app.post('/api/leads', async (req, res) => {
   try {
     const {
@@ -211,57 +193,60 @@ app.post('/api/leads', async (req, res) => {
       notes = '',
       next_followup_date = null,
       next_followup_time = null,
-      custom_fields = '{}'
+      custom_fields = {}
     } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({ success: false, error: 'Lead Name is required' });
     }
 
-    const result = await run(
-      `INSERT INTO leads (name, phone, email, company, city, source, status, priority, deal_value, assigned_to, tags, notes, next_followup_date, next_followup_time, custom_fields)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        name.trim(),
-        phone.trim(),
-        email.trim(),
-        company.trim(),
-        city.trim(),
-        source,
-        status,
-        priority,
-        Number(deal_value) || 0,
-        assigned_to,
-        tags,
-        notes,
-        next_followup_date,
-        next_followup_time,
-        typeof custom_fields === 'object' ? JSON.stringify(custom_fields) : custom_fields
-      ]
-    );
+    const newLeadDoc = await Lead.create({
+      name: name.trim(),
+      phone: phone.trim(),
+      email: email.trim(),
+      company: company.trim(),
+      city: city.trim(),
+      source,
+      status,
+      priority,
+      deal_value: Number(deal_value) || 0,
+      assigned_to,
+      tags,
+      notes,
+      next_followup_date,
+      next_followup_time,
+      custom_fields
+    });
 
-    const leadId = result.id;
+    const leadId = newLeadDoc._id;
 
-    // Record activity
-    await run(
-      `INSERT INTO activities (lead_id, type, title, details) VALUES (?, 'note', 'Lead Created', 'Added to system with status: ' || ?)`,
-      [leadId, status]
-    );
+    // Log Activity
+    await Activity.create({
+      lead_id: leadId,
+      type: 'note',
+      title: 'Lead Created',
+      details: `Added to system with status: ${status}`
+    });
 
-    // If follow-up date provided, create followup item
+    // Schedule Follow-up if date specified
     if (next_followup_date) {
-      await run(
-        `INSERT INTO followups (lead_id, due_date, due_time, note, priority) VALUES (?, ?, ?, ?, ?)`,
-        [leadId, next_followup_date, next_followup_time || '10:00', notes || 'Initial scheduled follow-up', priority]
-      );
+      await Followup.create({
+        lead_id: leadId,
+        due_date: next_followup_date,
+        due_time: next_followup_time || '10:00',
+        note: notes || 'Initial scheduled follow-up',
+        priority
+      });
     }
 
-    const newLead = await get(`SELECT * FROM leads WHERE id = ?`, [leadId]);
-    syncToGoogleSheet('create', newLead);
+    const responseLead = { ...newLeadDoc.toObject(), id: leadId.toString() };
+
+    // Real-time sync to Google Sheet
+    syncToGoogleSheet('create', responseLead);
 
     res.status(201).json({
       success: true,
-      lead: newLead
+      lead: responseLead
     });
   } catch (err) {
     console.error('Error creating lead:', err);
@@ -269,69 +254,35 @@ app.post('/api/leads', async (req, res) => {
   }
 });
 
-// PUT /api/leads/:id - Update lead
+// PUT /api/leads/:id - Update lead in MongoDB & sync to Google Sheet
 app.put('/api/leads/:id', async (req, res) => {
   try {
     const leadId = req.params.id;
-    const existing = await get(`SELECT * FROM leads WHERE id = ?`, [leadId]);
+    const existing = await Lead.findById(leadId);
     if (!existing) {
       return res.status(404).json({ success: false, error: 'Lead not found' });
     }
 
-    const {
-      name = existing.name,
-      phone = existing.phone,
-      email = existing.email,
-      company = existing.company,
-      city = existing.city,
-      source = existing.source,
-      status = existing.status,
-      priority = existing.priority,
-      deal_value = existing.deal_value,
-      assigned_to = existing.assigned_to,
-      tags = existing.tags,
-      notes = existing.notes,
-      next_followup_date = existing.next_followup_date,
-      next_followup_time = existing.next_followup_time,
-      custom_fields = existing.custom_fields
-    } = req.body;
-
-    await run(
-      `UPDATE leads SET
-        name = ?, phone = ?, email = ?, company = ?, city = ?,
-        source = ?, status = ?, priority = ?, deal_value = ?,
-        assigned_to = ?, tags = ?, notes = ?, next_followup_date = ?,
-        next_followup_time = ?, custom_fields = ?, updated_at = CURRENT_TIMESTAMP
-       WHERE id = ?`,
-      [
-        name,
-        phone,
-        email,
-        company,
-        city,
-        source,
-        status,
-        priority,
-        Number(deal_value) || 0,
-        assigned_to,
-        tags,
-        notes,
-        next_followup_date,
-        next_followup_time,
-        typeof custom_fields === 'object' ? JSON.stringify(custom_fields) : custom_fields,
-        leadId
-      ]
-    );
-
-    // If status changed, log activity
-    if (status !== existing.status) {
-      await run(
-        `INSERT INTO activities (lead_id, type, title, details) VALUES (?, 'status_change', 'Status Changed', 'Moved from ' || ? || ' to ' || ?)`,
-        [leadId, existing.status, status]
-      );
+    const previousStatus = existing.status;
+    const updateData = { ...req.body };
+    if (updateData.deal_value !== undefined) {
+      updateData.deal_value = Number(updateData.deal_value) || 0;
     }
 
-    const updatedLead = await get(`SELECT * FROM leads WHERE id = ?`, [leadId]);
+    const updatedDoc = await Lead.findByIdAndUpdate(leadId, updateData, { new: true }).lean();
+    const updatedLead = { ...updatedDoc, id: updatedDoc._id.toString() };
+
+    // If status changed, log activity
+    if (updateData.status && updateData.status !== previousStatus) {
+      await Activity.create({
+        lead_id: leadId,
+        type: 'status_change',
+        title: 'Status Changed',
+        details: `Moved from ${previousStatus} to ${updateData.status}`
+      });
+    }
+
+    // Real-time sync to Google Sheet
     syncToGoogleSheet('update', updatedLead);
 
     res.json({
@@ -344,23 +295,29 @@ app.put('/api/leads/:id', async (req, res) => {
   }
 });
 
-// PATCH /api/leads/:id/status - Quick stage update (for Kanban drag & drop)
+// PATCH /api/leads/:id/status - Quick stage update (Kanban)
 app.patch('/api/leads/:id/status', async (req, res) => {
   try {
     const { status } = req.body;
     const leadId = req.params.id;
-    const existing = await get(`SELECT * FROM leads WHERE id = ?`, [leadId]);
+
+    const existing = await Lead.findById(leadId);
     if (!existing) {
       return res.status(404).json({ success: false, error: 'Lead not found' });
     }
 
-    await run(`UPDATE leads SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [status, leadId]);
-    await run(
-      `INSERT INTO activities (lead_id, type, title, details) VALUES (?, 'status_change', 'Status Changed', 'Moved from ' || ? || ' to ' || ?)`,
-      [leadId, existing.status, status]
-    );
+    const previousStatus = existing.status;
+    existing.status = status;
+    await existing.save();
 
-    const updated = await get(`SELECT * FROM leads WHERE id = ?`, [leadId]);
+    await Activity.create({
+      lead_id: leadId,
+      type: 'status_change',
+      title: 'Status Changed',
+      details: `Moved from ${previousStatus} to ${status}`
+    });
+
+    const updated = { ...existing.toObject(), id: existing._id.toString() };
     syncToGoogleSheet('update', updated);
 
     res.json({ success: true, lead: updated });
@@ -370,15 +327,15 @@ app.patch('/api/leads/:id/status', async (req, res) => {
   }
 });
 
-// DELETE /api/leads/:id - Delete lead
+// DELETE /api/leads/:id - Delete lead from MongoDB
 app.delete('/api/leads/:id', async (req, res) => {
   try {
     const leadId = req.params.id;
-    await run(`DELETE FROM activities WHERE lead_id = ?`, [leadId]);
-    await run(`DELETE FROM followups WHERE lead_id = ?`, [leadId]);
-    const result = await run(`DELETE FROM leads WHERE id = ?`, [leadId]);
+    await Activity.deleteMany({ lead_id: leadId });
+    await Followup.deleteMany({ lead_id: leadId });
+    const result = await Lead.findByIdAndDelete(leadId);
 
-    if (result.changes === 0) {
+    if (!result) {
       return res.status(404).json({ success: false, error: 'Lead not found' });
     }
 
@@ -389,35 +346,46 @@ app.delete('/api/leads/:id', async (req, res) => {
   }
 });
 
-// POST /api/leads/:id/activity - Add activity / call log / note
+// POST /api/leads/:id/activity - Add activity log
 app.post('/api/leads/:id/activity', async (req, res) => {
   try {
     const leadId = req.params.id;
     const { type = 'note', title = 'Note Added', details = '' } = req.body;
 
-    const result = await run(
-      `INSERT INTO activities (lead_id, type, title, details) VALUES (?, ?, ?, ?)`,
-      [leadId, type, title, details]
-    );
+    const actDoc = await Activity.create({
+      lead_id: leadId,
+      type,
+      title,
+      details
+    });
 
-    const activity = await get(`SELECT * FROM activities WHERE id = ?`, [result.id]);
+    const activity = { ...actDoc.toObject(), id: actDoc._id.toString() };
     res.status(201).json({ success: true, activity });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// GET /api/followups - Get followups (Today, Overdue, Upcoming)
+// GET /api/followups - Today, Overdue, Upcoming
 app.get('/api/followups', async (req, res) => {
   try {
     const today = new Date().toISOString().split('T')[0];
 
-    const followups = await all(
-      `SELECT f.*, l.name as lead_name, l.phone as lead_phone, l.email as lead_email, l.company as lead_company, l.status as lead_status
-       FROM followups f
-       JOIN leads l ON f.lead_id = l.id
-       ORDER BY f.due_date ASC, f.due_time ASC`
-    );
+    const followupsDocs = await Followup.find()
+      .populate('lead_id', 'name phone email company status')
+      .sort({ due_date: 1, due_time: 1 })
+      .lean();
+
+    const followups = followupsDocs.map(f => ({
+      ...f,
+      id: f._id.toString(),
+      lead_name: f.lead_id?.name || 'Unknown',
+      lead_phone: f.lead_id?.phone || '',
+      lead_email: f.lead_id?.email || '',
+      lead_company: f.lead_id?.company || '',
+      lead_status: f.lead_id?.status || 'New',
+      lead_id: f.lead_id?._id?.toString() || f.lead_id
+    }));
 
     const overdue = followups.filter(f => !f.is_completed && f.due_date < today);
     const todays = followups.filter(f => !f.is_completed && f.due_date === today);
@@ -452,23 +420,27 @@ app.post('/api/followups', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Lead ID and Due Date are required' });
     }
 
-    const result = await run(
-      `INSERT INTO followups (lead_id, due_date, due_time, note, priority) VALUES (?, ?, ?, ?, ?)`,
-      [lead_id, due_date, due_time, note, priority]
-    );
+    const followupDoc = await Followup.create({
+      lead_id,
+      due_date,
+      due_time,
+      note,
+      priority
+    });
 
-    // Also update lead's next follow-up date
-    await run(
-      `UPDATE leads SET next_followup_date = ?, next_followup_time = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-      [due_date, due_time, lead_id]
-    );
+    await Lead.findByIdAndUpdate(lead_id, {
+      next_followup_date: due_date,
+      next_followup_time: due_time
+    });
 
-    await run(
-      `INSERT INTO activities (lead_id, type, title, details) VALUES (?, 'call', 'Follow-up Scheduled', 'Follow-up set for ' || ? || ' at ' || ? || ': ' || ?)`,
-      [lead_id, due_date, due_time, note]
-    );
+    await Activity.create({
+      lead_id,
+      type: 'call',
+      title: 'Follow-up Scheduled',
+      details: `Follow-up set for ${due_date} at ${due_time}: ${note}`
+    });
 
-    const followup = await get(`SELECT * FROM followups WHERE id = ?`, [result.id]);
+    const followup = { ...followupDoc.toObject(), id: followupDoc._id.toString() };
     res.status(201).json({ success: true, followup });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -479,24 +451,23 @@ app.post('/api/followups', async (req, res) => {
 app.patch('/api/followups/:id/complete', async (req, res) => {
   try {
     const followupId = req.params.id;
-    const existing = await get(`SELECT * FROM followups WHERE id = ?`, [followupId]);
+    const existing = await Followup.findById(followupId);
     if (!existing) {
       return res.status(404).json({ success: false, error: 'Follow-up not found' });
     }
 
     const newStatus = existing.is_completed ? 0 : 1;
-    const completedAt = newStatus ? new Date().toISOString() : null;
-
-    await run(
-      `UPDATE followups SET is_completed = ?, completed_at = ? WHERE id = ?`,
-      [newStatus, completedAt, followupId]
-    );
+    existing.is_completed = newStatus;
+    existing.completed_at = newStatus ? new Date() : null;
+    await existing.save();
 
     if (newStatus === 1) {
-      await run(
-        `INSERT INTO activities (lead_id, type, title, details) VALUES (?, 'call', 'Follow-up Completed', ?)`,
-        [existing.lead_id, existing.note || 'Follow-up marked as completed']
-      );
+      await Activity.create({
+        lead_id: existing.lead_id,
+        type: 'call',
+        title: 'Follow-up Completed',
+        details: existing.note || 'Follow-up marked as completed'
+      });
     }
 
     res.json({ success: true, message: 'Follow-up status updated', is_completed: newStatus });
@@ -505,10 +476,11 @@ app.patch('/api/followups/:id/complete', async (req, res) => {
   }
 });
 
-// GET /api/analytics - Comprehensive Stats & Metrics
+// GET /api/analytics - Comprehensive Stats & Metrics from MongoDB
 app.get('/api/analytics', async (req, res) => {
   try {
-    const allLeads = await all(`SELECT * FROM leads`);
+    const allLeadsDocs = await Lead.find().lean();
+    const allLeads = allLeadsDocs.map(l => ({ ...l, id: l._id.toString() }));
     const totalLeads = allLeads.length;
 
     const wonLeads = allLeads.filter(l => l.status === 'Won');
@@ -547,12 +519,17 @@ app.get('/api/analytics', async (req, res) => {
     }));
 
     // Recent activities
-    const recentActivities = await all(
-      `SELECT a.*, l.name as lead_name
-       FROM activities a
-       JOIN leads l ON a.lead_id = l.id
-       ORDER BY a.created_at DESC LIMIT 10`
-    );
+    const recentActivitiesDocs = await Activity.find()
+      .populate('lead_id', 'name')
+      .sort({ created_at: -1 })
+      .limit(10)
+      .lean();
+
+    const recentActivities = recentActivitiesDocs.map(a => ({
+      ...a,
+      id: a._id.toString(),
+      lead_name: a.lead_id?.name || 'Unknown'
+    }));
 
     res.json({
       success: true,
@@ -576,7 +553,7 @@ app.get('/api/analytics', async (req, res) => {
   }
 });
 
-// POST /api/leads/bulk-import - Import leads from CSV/Excel JSON
+// POST /api/leads/bulk-import - Bulk import into MongoDB & sync
 app.post('/api/leads/bulk-import', async (req, res) => {
   try {
     const { rows } = req.body;
@@ -601,23 +578,23 @@ app.post('/api/leads/bulk-import', async (req, res) => {
       const tags = row.tags || row['Tags'] || 'Imported';
       const notes = row.notes || row['Notes'] || row['Remarks'] || row['Comment'] || '';
 
-      const insertRes = await run(
-        `INSERT INTO leads (name, phone, email, company, city, source, status, priority, deal_value, assigned_to, tags, notes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [name, phone, email, company, city, source, status, priority, deal_value, assigned_to, tags, notes]
-      );
+      const doc = await Lead.create({
+        name, phone, email, company, city, source, status, priority, deal_value, assigned_to, tags, notes
+      });
 
-      await run(
-        `INSERT INTO activities (lead_id, type, title, details) VALUES (?, 'note', 'Imported from Sheet', 'Row imported successfully')`,
-        [insertRes.id]
-      );
+      await Activity.create({
+        lead_id: doc._id,
+        type: 'note',
+        title: 'Imported from Sheet',
+        details: 'Row imported successfully'
+      });
 
       importedCount++;
     }
 
     res.json({
       success: true,
-      message: `Successfully imported ${importedCount} leads!`,
+      message: `Successfully imported ${importedCount} leads into MongoDB!`,
       importedCount
     });
   } catch (err) {
@@ -626,17 +603,13 @@ app.post('/api/leads/bulk-import', async (req, res) => {
   }
 });
 
-// GET /api/settings - Get settings
+// GET /api/settings - Get settings from MongoDB
 app.get('/api/settings', async (req, res) => {
   try {
-    const rows = await all(`SELECT * FROM settings`);
+    const docs = await Setting.find().lean();
     const settings = {};
-    rows.forEach(r => {
-      try {
-        settings[r.key] = JSON.parse(r.value);
-      } catch (e) {
-        settings[r.key] = r.value;
-      }
+    docs.forEach(d => {
+      settings[d.key] = d.value;
     });
     res.json({ success: true, settings });
   } catch (err) {
@@ -644,22 +617,25 @@ app.get('/api/settings', async (req, res) => {
   }
 });
 
-// POST /api/settings - Update setting
+// POST /api/settings - Update setting in MongoDB
 app.post('/api/settings', async (req, res) => {
   try {
     const { key, value } = req.body;
     if (!key) return res.status(400).json({ success: false, error: 'Key is required' });
 
-    const valStr = typeof value === 'object' ? JSON.stringify(value) : String(value);
-    await run(`INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)`, [key, valStr]);
+    await Setting.findOneAndUpdate(
+      { key },
+      { key, value },
+      { upsert: true, new: true }
+    );
 
-    res.json({ success: true, message: 'Settings saved' });
+    res.json({ success: true, message: 'Settings saved in MongoDB' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// Serve frontend static build (Production & Offline Mode)
+// Serve frontend static build
 const clientDistPath = path.join(__dirname, '..', 'client', 'dist');
 app.use(express.static(clientDistPath));
 
@@ -667,14 +643,13 @@ app.use((req, res) => {
   res.sendFile(path.join(clientDistPath, 'index.html'));
 });
 
-// Initialize DB and start server
-initDb()
+// Initialize MongoDB Connection and start server
+connectDB()
   .then(() => {
     app.listen(PORT, () => {
-      console.log(`🚀 CRM Server running at http://localhost:${PORT}`);
+      console.log(`🚀 CRM Server running on port ${PORT} connected to MongoDB Atlas`);
     });
   })
   .catch((err) => {
-    console.error('Failed to initialize database:', err);
+    console.error('Failed to connect to MongoDB Atlas:', err.message);
   });
-

@@ -125,33 +125,63 @@ export default function App() {
     window.open(`https://wa.me/${cleanPhone}?text=${msg}`, '_blank');
   };
 
+  // Mobile Filter Bottom Sheet & Sort State
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
+  const [isSortSheetOpen, setIsSortSheetOpen] = useState(false);
+
+  const activeFiltersCount = (statusFilter !== 'all' ? 1 : 0) +
+    (sourceFilter !== 'all' ? 1 : 0) +
+    (priorityFilter !== 'all' ? 1 : 0);
+
+  const clearAllFilters = () => {
+    setStatusFilter('all');
+    setSourceFilter('all');
+    setPriorityFilter('all');
+  };
+
+  const formatDealValue = (val) => {
+    const num = Number(val || 0);
+    if (num >= 100000) {
+      return `₹${(num / 100000).toFixed(2).replace(/\.00$/, '')}L`;
+    }
+    if (num >= 1000) {
+      return `₹${(num / 1000).toFixed(1).replace(/\.0$/, '')}k`;
+    }
+    return `₹${num.toLocaleString('en-IN')}`;
+  };
+
   return (
     <div className="app-container">
       {/* Top Navigation Bar */}
       <header className="navbar">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-          <div className="brand">
-            <div className="brand-icon">
-              <Layers size={20} />
-            </div>
-            <div>
-              <div className="brand-title">Autopilot Business Coach</div>
-              <div className="brand-subtitle">Smart CRM & Growth System</div>
-            </div>
+        {/* Desktop Brand with Icon */}
+        <div className="brand desktop-only">
+          <div className="brand-icon">
+            <Layers size={20} />
           </div>
+          <div>
+            <div className="brand-title">Autopilot Business Coach</div>
+            <div className="brand-subtitle">Smart CRM & Growth System</div>
+          </div>
+        </div>
 
-          {/* Mobile Sidebar Hamburger Toggle */}
+        {/* Dedicated Mobile Header: Zero Logo, Clean, Left-Aligned, 16px Padding */}
+        <div className="mobile-header-block mobile-only">
+          <div className="mobile-brand-info">
+            <h1 className="mobile-brand-title">Autopilot Business Coach</h1>
+            <div className="mobile-brand-subtitle">SMART CRM & GROWTH SYSTEM</div>
+          </div>
           <button
-            className="mobile-sidebar-toggle"
-            onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
-            aria-label="Open Menu"
+            onClick={() => setIsImportExportOpen(true)}
+            className="btn btn-secondary mobile-header-import-btn"
           >
-            {isMobileSidebarOpen ? <X size={22} /> : <Menu size={22} />}
+            <Upload size={15} />
+            <span>⇧ Sheet Import / Export</span>
           </button>
         </div>
 
-        {/* View Switcher Tabs */}
-        <nav className="nav-tabs">
+        {/* Desktop View Switcher Tabs */}
+        <nav className="nav-tabs desktop-only">
           <button
             onClick={() => setActiveTab('leads')}
             className={`nav-tab-btn ${activeTab === 'leads' ? 'active' : ''}`}
@@ -208,8 +238,8 @@ export default function App() {
           </button>
         </nav>
 
-        {/* Quick Action Buttons */}
-        <div className="nav-actions">
+        {/* Desktop Quick Action Buttons */}
+        <div className="nav-actions desktop-only">
           <button
             onClick={() => setIsImportExportOpen(true)}
             className="btn btn-secondary"
@@ -234,11 +264,11 @@ export default function App() {
 
       {/* Main Content Body */}
       <main className="main-content">
-        {/* TAB 1: LEADS DATABASE (TABLE / GRID) */}
+        {/* TAB 1: LEADS DATABASE */}
         {activeTab === 'leads' && (
-          <div>
-            {/* Filter & Search Toolbar */}
-            <div className="toolbar">
+          <div className="leads-view-wrapper">
+            {/* Desktop Filter Toolbar */}
+            <div className="toolbar desktop-only">
               <div className="search-box">
                 <Search size={16} color="var(--text-muted)" />
                 <input
@@ -302,8 +332,158 @@ export default function App() {
               </div>
             </div>
 
-            {/* Table Container */}
-            <div className="table-container">
+            {/* Mobile-First Search & Compact Controls */}
+            <div className="mobile-leads-controls mobile-only">
+              <div className="mobile-search-bar">
+                <Search size={18} color="var(--text-muted)" />
+                <input
+                  type="text"
+                  placeholder="Search leads, phone, company..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+                {search && (
+                  <button className="clear-search-btn" onClick={() => setSearch('')}>
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+
+              {/* Two compact buttons: Filter & Sort */}
+              <div className="mobile-action-pills">
+                <button
+                  className={`mobile-pill-btn ${activeFiltersCount > 0 ? 'active' : ''}`}
+                  onClick={() => setIsFilterSheetOpen(true)}
+                >
+                  <Filter size={15} />
+                  <span>Filter</span>
+                  {activeFiltersCount > 0 && (
+                    <span className="pill-badge">{activeFiltersCount}</span>
+                  )}
+                </button>
+
+                <button
+                  className="mobile-pill-btn"
+                  onClick={() => setIsSortSheetOpen(true)}
+                >
+                  <ArrowUpDown size={15} />
+                  <span>Sort</span>
+                </button>
+              </div>
+
+              {/* Active Removable Chips */}
+              {(activeFiltersCount > 0 || search) && (
+                <div className="mobile-filter-chips">
+                  {statusFilter !== 'all' && (
+                    <span className="filter-chip">
+                      Status: {statusFilter}
+                      <button onClick={() => setStatusFilter('all')}><X size={12} /></button>
+                    </span>
+                  )}
+                  {sourceFilter !== 'all' && (
+                    <span className="filter-chip">
+                      Source: {sourceFilter}
+                      <button onClick={() => setSourceFilter('all')}><X size={12} /></button>
+                    </span>
+                  )}
+                  {priorityFilter !== 'all' && (
+                    <span className="filter-chip">
+                      Priority: {priorityFilter}
+                      <button onClick={() => setPriorityFilter('all')}><X size={12} /></button>
+                    </span>
+                  )}
+                  {search && (
+                    <span className="filter-chip">
+                      "{search}"
+                      <button onClick={() => setSearch('')}><X size={12} /></button>
+                    </span>
+                  )}
+                  <button className="clear-all-chips-btn" onClick={clearAllFilters}>
+                    Clear all
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Mobile Lead Cards List (Dedicated for 320px–480px Viewport) */}
+            <div className="mobile-lead-cards-list mobile-only">
+              {loading ? (
+                <div className="mobile-loading-state">
+                  Loading CRM leads...
+                </div>
+              ) : leads.length === 0 ? (
+                <div className="mobile-empty-state">
+                  <Users size={40} />
+                  <h3>No leads found</h3>
+                  <p>Create a new lead or clear your filters.</p>
+                  <button
+                    onClick={() => {
+                      setEditingLead(null);
+                      setIsLeadModalOpen(true);
+                    }}
+                    className="btn btn-primary"
+                  >
+                    <Plus size={16} /> + Add First Lead
+                  </button>
+                </div>
+              ) : (
+                leads.map((lead) => (
+                  <div
+                    key={lead.id}
+                    className="mobile-lead-card"
+                    onClick={() => setSelectedLeadId(lead.id)}
+                  >
+                    {/* Row 1: Name and Status Badge */}
+                    <div className="mobile-lead-card-header">
+                      <div className="mobile-lead-card-name">{lead.name}</div>
+                      <span className={`badge badge-status-${(lead.status || 'New').replace(/\s+/g, '')}`}>
+                        {lead.status}
+                      </span>
+                    </div>
+
+                    {/* Row 2: Company and City */}
+                    <div className="mobile-lead-card-company">
+                      {lead.company || 'Direct Client'} {lead.city ? `· ${lead.city}` : ''}
+                    </div>
+
+                    {/* Row 3: Contact Details with inline WhatsApp action */}
+                    <div className="mobile-lead-card-contact">
+                      <div className="mobile-contact-text">
+                        {lead.phone && <div className="mobile-phone">{lead.phone}</div>}
+                        {lead.email && <div className="mobile-email">{lead.email}</div>}
+                      </div>
+
+                      {lead.phone && (
+                        <button
+                          className="mobile-card-wa-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openWhatsApp(lead.phone, lead.name);
+                          }}
+                        >
+                          <MessageSquare size={13} />
+                          <span>WhatsApp</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Row 4: Deal Value, Priority, and Tap Arrow */}
+                    <div className="mobile-lead-card-footer">
+                      <span className="mobile-deal-value">
+                        {formatDealValue(lead.deal_value)} Deal
+                      </span>
+                      <span className={`badge badge-priority-${lead.priority}`}>
+                        {lead.priority} Priority
+                      </span>
+                      <span className="mobile-card-chevron">›</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Desktop Table Container (Hidden on mobile) */}
+            <div className="table-container desktop-only">
               {loading ? (
                 <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
                   Loading CRM leads...
@@ -673,6 +853,129 @@ export default function App() {
               >
                 <Upload size={16} /> Sheet Import / Export
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MOBILE FILTER BOTTOM SHEET */}
+      {isFilterSheetOpen && (
+        <div className="bottom-sheet-overlay" onClick={() => setIsFilterSheetOpen(false)}>
+          <div className="bottom-sheet-content" onClick={(e) => e.stopPropagation()}>
+            <div className="bottom-sheet-handle-bar" />
+            <div className="bottom-sheet-header">
+              <div className="bottom-sheet-title">Filter Leads</div>
+              <button className="btn-icon" onClick={() => setIsFilterSheetOpen(false)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="bottom-sheet-body">
+              <div className="sheet-filter-field">
+                <label className="sheet-label">Pipeline Stage (Status)</label>
+                <select
+                  className="form-input"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                >
+                  <option value="all">All Stages (Any)</option>
+                  <option value="New">New</option>
+                  <option value="Contacted">Contacted</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Proposal Sent">Proposal Sent</option>
+                  <option value="Won">Won</option>
+                  <option value="Lost">Lost</option>
+                </select>
+              </div>
+
+              <div className="sheet-filter-field">
+                <label className="sheet-label">Lead Source</label>
+                <select
+                  className="form-input"
+                  value={sourceFilter}
+                  onChange={(e) => setSourceFilter(e.target.value)}
+                >
+                  <option value="all">All Sources</option>
+                  <option value="Website Form">Website Form</option>
+                  <option value="Google Ads">Google Ads</option>
+                  <option value="Facebook Ads">Facebook Ads</option>
+                  <option value="Referral">Referral</option>
+                  <option value="Cold Call">Cold Call</option>
+                </select>
+              </div>
+
+              <div className="sheet-filter-field">
+                <label className="sheet-label">Priority Level</label>
+                <select
+                  className="form-input"
+                  value={priorityFilter}
+                  onChange={(e) => setPriorityFilter(e.target.value)}
+                >
+                  <option value="all">All Priorities</option>
+                  <option value="Urgent">Urgent</option>
+                  <option value="High">High</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Low">Low</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="bottom-sheet-footer">
+              <button
+                className="btn btn-secondary"
+                style={{ flex: 1 }}
+                onClick={() => {
+                  clearAllFilters();
+                  setIsFilterSheetOpen(false);
+                }}
+              >
+                Reset All
+              </button>
+              <button
+                className="btn btn-primary"
+                style={{ flex: 1 }}
+                onClick={() => setIsFilterSheetOpen(false)}
+              >
+                Apply Filters
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MOBILE SORT BOTTOM SHEET */}
+      {isSortSheetOpen && (
+        <div className="bottom-sheet-overlay" onClick={() => setIsSortSheetOpen(false)}>
+          <div className="bottom-sheet-content" onClick={(e) => e.stopPropagation()}>
+            <div className="bottom-sheet-handle-bar" />
+            <div className="bottom-sheet-header">
+              <div className="bottom-sheet-title">Sort Leads By</div>
+              <button className="btn-icon" onClick={() => setIsSortSheetOpen(false)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="bottom-sheet-body">
+              <div className="sheet-sort-options">
+                {[
+                  { id: 'created_at', label: 'Newest First (Recent)' },
+                  { id: 'deal_value', label: 'Deal Value (Highest)' },
+                  { id: 'name', label: 'Lead Name (A - Z)' },
+                  { id: 'next_followup_date', label: 'Next Follow-up Date' }
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    className={`sheet-sort-row ${sortBy === opt.id ? 'active' : ''}`}
+                    onClick={() => {
+                      setSortBy(opt.id);
+                      setIsSortSheetOpen(false);
+                    }}
+                  >
+                    <span>{opt.label}</span>
+                    {sortBy === opt.id && <CheckCircle2 size={16} className="text-primary" />}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>

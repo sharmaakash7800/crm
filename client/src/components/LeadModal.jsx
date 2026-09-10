@@ -257,12 +257,19 @@ export default function LeadModal({ isOpen, onClose, onSave, lead = null }) {
             </div>
           </div>
 
-          <div className="modal-footer">
-            <button type="button" className="btn btn-secondary" onClick={onClose}>
+          <div className="modal-footer lead-modal-footer">
+            <button
+              type="button"
+              className="btn btn-secondary modal-cancel-btn"
+              onClick={onClose}
+            >
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary">
-              {lead ? 'Save Changes' : 'Create Lead'}
+            <button
+              type="submit"
+              className="btn btn-primary modal-save-btn"
+            >
+              {lead ? 'Update Lead Details' : 'Save & Add Lead'}
             </button>
           </div>
         </form>
