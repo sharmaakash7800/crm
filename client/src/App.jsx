@@ -154,11 +154,8 @@ export default function App() {
     <div className="app-container">
       {/* Top Navigation Bar */}
       <header className="navbar">
-        {/* Desktop Brand with Icon */}
+        {/* Desktop Brand (Zero logo, clean text) */}
         <div className="brand desktop-only">
-          <div className="brand-icon">
-            <Layers size={20} />
-          </div>
           <div>
             <div className="brand-title">Autopilot Business Coach</div>
             <div className="brand-subtitle">Smart CRM & Growth System</div>
@@ -767,14 +764,9 @@ export default function App() {
         <div className="mobile-sidebar-overlay" onClick={() => setIsMobileSidebarOpen(false)}>
           <div className="mobile-sidebar-panel" onClick={(e) => e.stopPropagation()}>
             <div className="mobile-sidebar-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                <div className="brand-icon" style={{ width: '32px', height: '32px' }}>
-                  <Layers size={18} />
-                </div>
-                <div>
-                  <div style={{ fontWeight: '700', fontSize: '0.95rem', color: '#FFFFFF' }}>Autopilot Coach</div>
-                  <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Menu & Actions</div>
-                </div>
+              <div>
+                <div style={{ fontWeight: '700', fontSize: '0.95rem', color: '#FFFFFF' }}>Autopilot Coach</div>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Menu & Actions</div>
               </div>
               <button className="btn-icon" onClick={() => setIsMobileSidebarOpen(false)}>
                 <X size={18} />
