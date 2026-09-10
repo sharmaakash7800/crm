@@ -8,8 +8,7 @@ client/node_modules/
 # Bundled binaries
 node.exe
 
-# Production Build output
-client/dist/
+# Local Windows launcher scripts (not needed on cloud)
 
 # SQLite Database (Local data)
 data/
