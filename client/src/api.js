@@ -71,9 +71,11 @@ export const api = {
     return res.json();
   },
 
-  async completeFollowup(id) {
+  async completeFollowup(id, remark = '') {
     const res = await fetch(`${API_BASE}/followups/${id}/complete`, {
-      method: 'PATCH'
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ remark })
     });
     return res.json();
   },

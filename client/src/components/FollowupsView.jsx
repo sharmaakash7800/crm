@@ -15,6 +15,7 @@ export default function FollowupsView({ onSelectLead }) {
   });
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
+  const [meetingModal, setMeetingModal] = useState({ isOpen: false, followupId: null, clientName: '', remark: '' });
 
   const loadFollowups = async () => {
     try {
@@ -33,6 +34,26 @@ export default function FollowupsView({ onSelectLead }) {
   useEffect(() => {
     loadFollowups();
   }, []);
+
+  const handleOpenCompleteModal = (item) => {
+    setMeetingModal({
+      isOpen: true,
+      followupId: item.id,
+      clientName: item.lead_name || 'Client',
+      remark: ''
+    });
+  };
+
+  const handleConfirmComplete = async () => {
+    if (!meetingModal.followupId) return;
+    try {
+      await api.completeFollowup(meetingModal.followupId, meetingModal.remark);
+      setMeetingModal({ isOpen: false, followupId: null, clientName: '', remark: '' });
+      loadFollowups();
+    } catch (err) {
+      console.error('Error completing follow-up with remark:', err);
+    }
+  };
 
   const handleToggleComplete = async (id) => {
     try {
@@ -119,24 +140,55 @@ export default function FollowupsView({ onSelectLead }) {
               <Phone size={14} />
               <span>Call</span>
             </a>
+
+            {!item.is_completed ? (
+              <button
+                onClick={() => handleOpenCompleteModal(item)}
+                className="btn btn-primary followup-action-btn"
+                style={{ gridColumn: 'span 2' }}
+              >
+                <Check size={14} />
+                <span>Meeting Done + Add Remark</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => handleToggleComplete(item.id)}
+                className="btn btn-secondary followup-action-btn"
+                style={{ gridColumn: 'span 2' }}
+              >
+                <span>Re-open Follow-up</span>
+              </button>
+            )}
           </>
         ) : (
-          <button
-            onClick={() => handleToggleComplete(item.id)}
-            className="btn btn-secondary followup-action-btn"
-          >
-            <Check size={14} />
-            <span>{item.is_completed ? 'Mark Pending' : 'Mark Done'}</span>
-          </button>
+          <>
+            {!item.is_completed ? (
+              <button
+                onClick={() => handleOpenCompleteModal(item)}
+                className="btn btn-primary followup-action-btn"
+              >
+                <Check size={14} />
+                <span>Done + Remark</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => handleToggleComplete(item.id)}
+                className="btn btn-secondary followup-action-btn"
+              >
+                <span>Mark Pending</span>
+              </button>
+            )}
+          </>
         )}
 
         <button
           onClick={() => onSelectLead(item.lead_id)}
           className="btn btn-secondary followup-open-btn"
+          style={{ gridColumn: 'span 2' }}
           title="Open Lead Profile"
         >
           <ArrowUpRight size={15} />
-          <span>Open</span>
+          <span>Open Lead Profile</span>
         </button>
       </div>
     </div>
@@ -237,6 +289,58 @@ export default function FollowupsView({ onSelectLead }) {
           </div>
         )}
       </div>
+
+      {/* Meeting Done + Add Remark Modal */}
+      {meetingModal.isOpen && (
+        <div className="modal-overlay" onClick={() => setMeetingModal({ isOpen: false, followupId: null, clientName: '', remark: '' })}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px' }}>
+            <div className="modal-header">
+              <div>
+                <h3 className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  🤝 Meeting Done / Remark
+                </h3>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  Client: <strong style={{ color: 'var(--text-primary)' }}>{meetingModal.clientName}</strong>
+                </p>
+              </div>
+            </div>
+
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label className="form-label" style={{ fontWeight: '600', marginBottom: '6px', display: 'block' }}>
+                  Meeting Remark / Discussion Points:
+                </label>
+                <textarea
+                  rows="4"
+                  className="form-input"
+                  placeholder="Meeting me kya baat hui? E.g., Client agreed to proposal, will send payment tomorrow..."
+                  value={meetingModal.remark}
+                  onChange={(e) => setMeetingModal({ ...meetingModal, remark: e.target.value })}
+                  style={{ width: '100%', resize: 'vertical' }}
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            <div className="modal-footer" style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setMeetingModal({ isOpen: false, followupId: null, clientName: '', remark: '' })}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleConfirmComplete}
+              >
+                <Check size={16} /> Save Remark & Mark Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

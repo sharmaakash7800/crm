@@ -451,10 +451,11 @@ app.post('/api/followups', async (req, res) => {
   }
 });
 
-// PATCH /api/followups/:id/complete - Mark followup complete
+// PATCH /api/followups/:id/complete - Mark followup complete (supports meeting/call remark)
 app.patch('/api/followups/:id/complete', async (req, res) => {
   try {
     const followupId = req.params.id;
+    const { remark } = req.body || {};
     const existing = await Followup.findById(followupId);
     if (!existing) {
       return res.status(404).json({ success: false, error: 'Follow-up not found' });
@@ -463,14 +464,29 @@ app.patch('/api/followups/:id/complete', async (req, res) => {
     const newStatus = existing.is_completed ? 0 : 1;
     existing.is_completed = newStatus;
     existing.completed_at = newStatus ? new Date() : null;
+
+    if (remark && remark.trim()) {
+      const cleanRemark = remark.trim();
+      existing.note = existing.note ? `${existing.note} | Remark: ${cleanRemark}` : `Meeting Remark: ${cleanRemark}`;
+
+      // Also update lead's notes so the meeting remark is permanently visible
+      await Lead.findByIdAndUpdate(existing.lead_id, {
+        $set: { notes: cleanRemark }
+      });
+    }
+
     await existing.save();
 
     if (newStatus === 1) {
+      const activityDetails = remark && remark.trim()
+        ? `Meeting/Call Remark: ${remark.trim()}`
+        : (existing.note || 'Follow-up marked as completed');
+
       await Activity.create({
         lead_id: existing.lead_id,
-        type: 'call',
-        title: 'Follow-up Completed',
-        details: existing.note || 'Follow-up marked as completed'
+        type: 'meeting',
+        title: 'Meeting / Follow-up Completed',
+        details: activityDetails
       });
     }
 

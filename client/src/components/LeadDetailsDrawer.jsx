@@ -309,6 +309,24 @@ export default function LeadDetailsDrawer({ leadId, onClose, onLeadUpdated, onEd
                       </div>
                     </div>
                   )}
+
+                  {leadData.notes && (
+                    <div className="info-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '4px', borderBottom: 'none' }}>
+                      <span className="info-label">Meeting Remark / Notes:</span>
+                      <div style={{
+                        background: 'rgba(59, 130, 246, 0.08)',
+                        border: '1px solid rgba(59, 130, 246, 0.25)',
+                        borderRadius: 'var(--radius-sm)',
+                        padding: '8px 12px',
+                        fontSize: '13px',
+                        width: '100%',
+                        color: 'inherit',
+                        lineHeight: '1.4'
+                      }}>
+                        📝 {leadData.notes}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

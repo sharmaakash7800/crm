@@ -111,7 +111,7 @@ export default function KanbanBoard({ leads, onSelectLead, onStatusChange }) {
 
   return (
     <div className="kanban-wrapper">
-      {/* Mobile Top Stage Selector Tabs (One Stage at a time on Mobile) */}
+      {/* Mobile Top Stage Selector Tabs (Compact Single-Row Horizontal Scroll) */}
       <div className="mobile-kanban-stage-tabs mobile-only">
         {STAGES.map((stage) => {
           const count = leads.filter((l) => l.status === stage.id).length;
@@ -122,17 +122,18 @@ export default function KanbanBoard({ leads, onSelectLead, onStatusChange }) {
               onClick={() => setActiveMobileStage(stage.id)}
               className={`mobile-stage-tab ${isActive ? 'active' : ''}`}
               style={{
-                borderColor: isActive ? stage.color : 'transparent',
-                color: isActive ? '#FFFFFF' : 'var(--text-secondary)'
+                borderColor: isActive ? stage.color : undefined,
+                color: isActive ? undefined : 'var(--text-secondary)'
               }}
             >
               <span
                 style={{
-                  width: 8,
-                  height: 8,
+                  width: 7,
+                  height: 7,
                   borderRadius: '50%',
                   backgroundColor: stage.color,
-                  display: 'inline-block'
+                  display: 'inline-block',
+                  flexShrink: 0
                 }}
               />
               <span>{stage.shortLabel}</span>
